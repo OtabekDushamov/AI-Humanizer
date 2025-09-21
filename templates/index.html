@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">AI Humanizer - Transform Your Text</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        .glow-border {
+            border: 1px solid transparent;
+            box-shadow: 0 0 10px 2px rgba(99, 102, 241, 0.5);
+        }
+        .glow-text {
+            text-shadow: 0 0 8px rgba(167, 139, 250, 0.8);
+        }
+        .gradient-btn {
+            background: linear-gradient(45deg, #6366f1, #8b5cf6);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+            transition: all 0.3s ease;
+        }
+        .gradient-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+        }
+        .typing-effect {
+            border-right: 2px solid;
+            animation: blink 0.75s step-end infinite;
+        }
+        @keyframes blink {
+            from, to { border-color: transparent }
+            50% { border-color: #8b5cf6 }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- Language Switcher -->
+    <div class="absolute top-4 right-4 z-50 flex space-x-2">
+        <button class="px-3 py-1 rounded-full gradient-btn text-xs font-medium glow-text" id="lang-en">EN</button>
+        <button class="px-3 py-1 rounded-full bg-gray-800 text-xs font-medium hover:bg-gray-700" id="lang-ru">RU</button>
+        <button class="px-3 py-1 rounded-full bg-gray-800 text-xs font-medium hover:bg-gray-700" id="lang-uz">UZ</button>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="flex-grow flex flex-col items-center justify-center px-4 py-16 sm:py-24 text-center" data-aos="fade-in">
+        <h1 class="text-4xl sm:text-6xl font-bold mb-4 glow-text" id="main-title">AI Humanizer</h1>
+        <p class="text-lg sm:text-xl mb-8 max-w-2xl" id="subtitle">Transform your text into different styles instantly</p>
+    </section>
+
+    <!-- Main Interactive Card -->
+    <section class="flex-grow flex flex-col items-center px-4 pb-16 -mt-16">
+        <div class="w-full max-w-3xl glass-card rounded-xl p-6 glow-border" data-aos="fade-up">
+            <div class="mb-6">
+                <label for="mode-select" class="block text-sm font-medium mb-2" id="mode-label">Select Mode</label>
+                <select id="mode-select" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="academic" data-en="Academic" data-ru="Академический" data-uz="Akademik">Academic</option>
+                    <option value="casual" data-en="Casual" data-ru="Повседневный" data-uz="Oddiy">Casual</option>
+                    <option value="emotional" data-en="Emotional" data-ru="Эмоциональный" data-uz="Emotsional">Emotional</option>
+                    <option value="marketing" data-en="Marketing" data-ru="Маркетинговый" data-uz="Marketing">Marketing</option>
+                    <option value="storytelling" data-en="Storytelling" data-ru="Повествовательный" data-uz="Hikoya">Storytelling</option>
+                    <option value="simplify" data-en="Simplify" data-ru="Упростить" data-uz="Soddalashtirish">Simplify</option>
+                </select>
+            </div>
+            
+            <div class="mb-6">
+                <label for="input-text" class="block text-sm font-medium mb-2" id="text-label">Your Text</label>
+                <textarea id="input-text" rows="5" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Enter text to transform..."></textarea>
+            </div>
+            
+            <div class="flex justify-between mb-6">
+                <button id="try-sample" class="text-sm text-indigo-400 hover:text-indigo-300 flex items-center">
+                    <i data-feather="zap" class="w-4 h-4 mr-1"></i> <span id="try-sample-text">Try Sample</span>
+                </button>
+                <button id="generate-btn" class="gradient-btn px-6 py-2 rounded-lg font-medium flex items-center">
+                    <i data-feather="sparkles" class="w-4 h-4 mr-2"></i> <span id="generate-text">Generate</span>
+                </button>
+            </div>
+            
+            <div id="result-container" class="hidden">
+                <label class="block text-sm font-medium mb-2" id="result-label">Result</label>
+                <div class="glass-card rounded-lg p-4 mb-4 glow-border relative">
+                    <div id="result-text" class="min-h-32 typing-effect"></div>
+                    <button id="copy-btn" class="absolute top-2 right-2 p-1 rounded-full bg-gray-800 hover:bg-gray-700">
+                        <i data-feather="copy" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="history-container" class="hidden mt-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-sm font-medium" id="history-title">Recent History</h3>
+                    <button id="clear-history-btn" class="text-xs text-red-400 hover:text-red-300 flex items-center">
+                        <i data-feather="trash-2" class="w-3 h-3 mr-1"></i> <span id="clear-history-text">Clear All</span>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="history-grid">
+                    <!-- History items will be added here dynamically -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="mt-auto">
+        <div class="border-t border-gray-800 w-full"></div>
+        <div class="py-6 text-center text-sm text-gray-400" id="footer-text">
+            © 2025 AI Humanizer. All rights reserved.
+        </div>
+    </footer>
+
+    <script>
+        AOS.init({
+            duration: 800,
+            once: true
+        });
+        feather.replace();
+        
+        // Language switching
+        let currentLanguage = 'en';
+        
+        const translations = {
+            pageTitle: {
+                en: "AI Humanizer - Transform Your Text",
+                ru: "AI Гуманизатор - Преобразуйте Ваш Текст",
+                uz: "AI Gumanizator - Matningizni O'zgartiring"
+            },
+            mainTitle: {
+                en: "AI Humanizer",
+                ru: "AI Гуманизатор",
+                uz: "AI Gumanizator"
+            },
+            subtitle: {
+                en: "Transform your text into different styles instantly",
+                ru: "Преобразуйте свой текст в разные стили мгновенно",
+                uz: "Matningizni turli uslublarga aylantiring"
+            },
+            modeLabel: {
+                en: "Select Mode",
+                ru: "Выберите Режим",
+                uz: "Rejimni Tanlang"
+            },
+            textLabel: {
+                en: "Your Text",
+                ru: "Ваш Текст",
+                uz: "Sizning Matningiz"
+            },
+            textPlaceholder: {
+                en: "Enter text to transform...",
+                ru: "Введите текст для преобразования...",
+                uz: "O'zgartirish uchun matn kiriting..."
+            },
+            trySample: {
+                en: "Try Sample",
+                ru: "Попробовать Пример",
+                uz: "Namuna Sinab Ko'ring"
+            },
+            generate: {
+                en: "Generate",
+                ru: "Сгенерировать",
+                uz: "Yaratish"
+            },
+            generating: {
+                en: "Generating...",
+                ru: "Генерация...",
+                uz: "Yaratilmoqda..."
+            },
+            result: {
+                en: "Result",
+                ru: "Результат",
+                uz: "Natija"
+            },
+            history: {
+                en: "Recent History",
+                ru: "Недавняя История",
+                uz: "So'nggi Tarix"
+            },
+            footer: {
+                en: "© 2025 AI Humanizer. All rights reserved.",
+                ru: "© 2025 AI Гуманизатор. Все права защищены.",
+                uz: "© 2025 AI Gumanizator. Barcha huquqlar himoyalangan."
+            },
+            errorMessage: {
+                en: "Sorry, there was an error processing your request. Please try again.",
+                ru: "Извините, произошла ошибка при обработке вашего запроса. Попробуйте еще раз.",
+                uz: "Kechirasiz, so'rovingizni qayta ishlashda xatolik yuz berdi. Qaytadan urinib ko'ring."
+            },
+            justNow: {
+                en: "Just now",
+                ru: "Только что",
+                uz: "Hozir"
+            },
+            clearAll: {
+                en: "Clear All",
+                ru: "Очистить Все",
+                uz: "Hammasini Tozalash"
+            }
+        };
+        
+        function switchLanguage(lang) {
+            currentLanguage = lang;
+            
+            // Update all text elements
+            document.getElementById('page-title').textContent = translations.pageTitle[lang];
+            document.getElementById('main-title').textContent = translations.mainTitle[lang];
+            document.getElementById('subtitle').textContent = translations.subtitle[lang];
+            document.getElementById('mode-label').textContent = translations.modeLabel[lang];
+            document.getElementById('text-label').textContent = translations.textLabel[lang];
+            document.getElementById('input-text').placeholder = translations.textPlaceholder[lang];
+            document.getElementById('try-sample-text').textContent = translations.trySample[lang];
+            document.getElementById('generate-text').textContent = translations.generate[lang];
+            document.getElementById('result-label').textContent = translations.result[lang];
+            document.getElementById('history-title').textContent = translations.history[lang];
+            document.getElementById('clear-history-text').textContent = translations.clearAll[lang];
+            document.getElementById('footer-text').textContent = translations.footer[lang];
+            
+            // Update select options
+            const selectOptions = document.querySelectorAll('#mode-select option');
+            selectOptions.forEach(option => {
+                const value = option.value;
+                option.textContent = option.getAttribute(`data-${lang}`);
+            });
+            
+            // Update language buttons
+            document.querySelectorAll('[id^="lang-"]').forEach(btn => {
+                btn.classList.remove('gradient-btn', 'glow-text');
+                btn.classList.add('bg-gray-800');
+            });
+            
+            document.getElementById(`lang-${lang}`).classList.add('gradient-btn', 'glow-text');
+            document.getElementById(`lang-${lang}`).classList.remove('bg-gray-800');
+            
+            // Update history items
+            updateHistoryDisplay();
+        }
+        
+        document.getElementById('lang-en').addEventListener('click', () => switchLanguage('en'));
+        document.getElementById('lang-ru').addEventListener('click', () => switchLanguage('ru'));
+        document.getElementById('lang-uz').addEventListener('click', () => switchLanguage('uz'));
+        
+        // Clear all history button
+        document.getElementById('clear-history-btn').addEventListener('click', clearAllHistory);
+        
+        // Demo functionality
+        const sampleTexts = {
+            academic: "The results indicate a significant correlation between the variables, suggesting that further investigation is warranted to establish causality.",
+            casual: "Hey! Just wanted to check in and see how you're doing. Let me know when you're free to catch up!",
+            emotional: "My heart swelled with joy as I watched the sunset, painting the sky in hues of gold and crimson, reminding me of life's fleeting beauty.",
+            marketing: "Unlock your potential with our revolutionary product! Designed for maximum efficiency and style, it's the perfect solution for modern professionals.",
+            storytelling: "The old house at the end of the street had always been mysterious, but when the lights started flickering at midnight, I knew something was different this time.",
+            simplify: "The aforementioned individual proceeded to articulate their perspective regarding the matter at hand. → He shared his opinion about it."
+        };
+        
+        document.getElementById('try-sample').addEventListener('click', () => {
+            const mode = document.getElementById('mode-select').value;
+            document.getElementById('input-text').value = sampleTexts[mode];
+            generateHumanizedText();
+        });
+        
+        document.getElementById('generate-btn').addEventListener('click', generateHumanizedText);
+        
+        async function generateHumanizedText() {
+            const inputText = document.getElementById('input-text').value;
+            if (!inputText.trim()) return;
+            
+            const mode = document.getElementById('mode-select').value;
+            const resultContainer = document.getElementById('result-container');
+            const resultText = document.getElementById('result-text');
+            const historyContainer = document.getElementById('history-container');
+            const generateBtn = document.getElementById('generate-btn');
+            
+            // Show loading state
+            resultContainer.classList.remove('hidden');
+            resultText.textContent = "";
+            resultText.classList.add('typing-effect');
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = `<i data-feather="loader" class="w-4 h-4 mr-2 animate-spin"></i> ${translations.generating[currentLanguage]}`;
+            feather.replace();
+            
+            try {
+                const response = await fetch('/api/humanize/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: inputText,
+                        mode: mode
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to humanize text');
+                }
+                
+                const data = await response.json();
+                const result = data.humanized_text;
+                
+                // Typewriter effect
+                let i = 0;
+                const typing = setInterval(() => {
+                    if (i < result.length) {
+                        resultText.textContent += result.charAt(i);
+                        i++;
+                    } else {
+                        clearInterval(typing);
+                        resultText.classList.remove('typing-effect');
+                        saveToSessionHistory(inputText, result, mode);
+                        updateHistoryDisplay();
+                        historyContainer.classList.remove('hidden');
+                    }
+                }, 20);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                resultText.textContent = translations.errorMessage[currentLanguage];
+                resultText.classList.remove('typing-effect');
+            } finally {
+                // Reset button state
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = `<i data-feather="sparkles" class="w-4 h-4 mr-2"></i> ${translations.generate[currentLanguage]}`;
+                feather.replace();
+            }
+        }
+        
+        // Session-based history management
+        function saveToSessionHistory(original, transformed, mode) {
+            const historyItem = {
+                id: Date.now() + Math.random(), // Unique ID for each item
+                original: original,
+                transformed: transformed,
+                mode: mode,
+                timestamp: Date.now()
+            };
+            
+            // Get existing history from sessionStorage
+            let history = JSON.parse(sessionStorage.getItem('humanizer_history') || '[]');
+            
+            // Add new item to beginning
+            history.unshift(historyItem);
+            
+            // Keep only last 10 items
+            history = history.slice(0, 10);
+            
+            // Save back to sessionStorage
+            sessionStorage.setItem('humanizer_history', JSON.stringify(history));
+        }
+        
+        function getSessionHistory() {
+            const history = JSON.parse(sessionStorage.getItem('humanizer_history') || '[]');
+            const oneHourAgo = Date.now() - (60 * 60 * 1000); // 1 hour in milliseconds
+            
+            // Filter out items older than 1 hour
+            return history.filter(item => item.timestamp > oneHourAgo);
+        }
+        
+        function deleteHistoryItem(itemId) {
+            let history = JSON.parse(sessionStorage.getItem('humanizer_history') || '[]');
+            history = history.filter(item => item.id !== itemId);
+            sessionStorage.setItem('humanizer_history', JSON.stringify(history));
+            updateHistoryDisplay();
+        }
+        
+        function clearAllHistory() {
+            sessionStorage.removeItem('humanizer_history');
+            updateHistoryDisplay();
+        }
+        
+        function updateHistoryDisplay() {
+            const history = getSessionHistory();
+            const historyGrid = document.getElementById('history-grid');
+            const historyContainer = document.getElementById('history-container');
+            
+            // Clear existing history items
+            historyGrid.innerHTML = '';
+            
+            if (history.length === 0) {
+                historyContainer.classList.add('hidden');
+                return;
+            }
+            
+            // Show only first 3 items
+            const displayHistory = history.slice(0, 3);
+            
+            displayHistory.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item glass-card rounded-lg p-3 text-sm hover:bg-gray-800/50 relative group';
+                
+                const modeText = document.querySelector(`#mode-select option[value="${item.mode}"]`).getAttribute(`data-${currentLanguage}`);
+                
+                historyItem.innerHTML = `
+                    <div class="text-xs text-indigo-400 mb-1">${modeText}</div>
+                    <div class="line-clamp-2 mb-1 cursor-pointer">${item.original.substring(0, 60)}${item.original.length > 60 ? '...' : ''}</div>
+                    <div class="text-xs text-gray-400">${translations.justNow[currentLanguage]}</div>
+                    <button class="absolute top-2 right-2 p-1 rounded-full bg-gray-800 hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200" onclick="deleteHistoryItem('${item.id}')">
+                        <i data-feather="x" class="w-3 h-3"></i>
+                    </button>
+                `;
+                
+                // Add click handler to fill input (only on the text area, not the delete button)
+                const textArea = historyItem.querySelector('.line-clamp-2');
+                textArea.addEventListener('click', () => {
+                    document.getElementById('input-text').value = item.original;
+                    document.getElementById('mode-select').value = item.mode;
+                    document.getElementById('result-text').textContent = item.transformed;
+                    document.getElementById('result-container').classList.remove('hidden');
+                });
+                
+                historyGrid.appendChild(historyItem);
+            });
+            
+            // Refresh feather icons
+            feather.replace();
+            historyContainer.classList.remove('hidden');
+        }
+        
+        // Load history on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if we already have sessionStorage history to avoid duplication
+            const existingHistory = JSON.parse(sessionStorage.getItem('humanizer_history') || '[]');
+            
+            // Only load from backend if we don't have any existing history
+            if (existingHistory.length === 0) {
+                try {
+                    const response = await fetch('/api/history/');
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.history && data.history.length > 0) {
+                            // Convert backend history to frontend format
+                            const backendHistory = data.history.map(item => ({
+                                id: `backend_${item.timestamp}_${Math.random()}`, // Unique ID for backend items
+                                original: item.original_text,
+                                transformed: item.humanized_text,
+                                mode: item.mode,
+                                timestamp: item.timestamp * 1000 // Convert to milliseconds
+                            }));
+                            
+                            // Sort by timestamp and keep only recent items
+                            const sortedHistory = backendHistory
+                                .sort((a, b) => b.timestamp - a.timestamp)
+                                .slice(0, 10);
+                            
+                            sessionStorage.setItem('humanizer_history', JSON.stringify(sortedHistory));
+                        }
+                    }
+                } catch (error) {
+                    console.log('Could not load backend history, using localStorage only');
+                }
+            }
+            
+            updateHistoryDisplay();
+        });
+        
+        // Copy button functionality
+        document.getElementById('copy-btn').addEventListener('click', () => {
+            const resultText = document.getElementById('result-text').textContent;
+            navigator.clipboard.writeText(resultText).then(() => {
+                const copyBtn = document.getElementById('copy-btn');
+                copyBtn.innerHTML = '<i data-feather="check" class="w-4 h-4 text-green-400"></i>';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<i data-feather="copy" class="w-4 h-4"></i>';
+                    feather.replace();
+                }, 2000);
+            });
+            feather.replace();
+        });
+    </script>
+</body>
+</html>
