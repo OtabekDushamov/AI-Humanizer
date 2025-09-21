@@ -2,10 +2,28 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.utils import timezone
+from .openai import humanize
+from .models import User, Request
 import json
 import time
 
 # Create your views here.
+
+def get_or_create_user(session_key):
+    """Get or create a user based on session key"""
+    if not session_key:
+        return None
+    
+    user, created = User.objects.get_or_create(
+        session_key=session_key,
+        defaults={'last_active': timezone.now()}
+    )
+    
+    # Update last active timestamp
+    user.update_last_active()
+    
+    return user
 
 def index(request):
     """Render the main index page"""
@@ -15,6 +33,8 @@ def index(request):
 @require_http_methods(["POST"])
 def humanize_text(request):
     """API endpoint to humanize text"""
+    start_time = time.time()
+    
     try:
         data = json.loads(request.body)
         text = data.get('text', '')
@@ -23,32 +43,30 @@ def humanize_text(request):
         if not text.strip():
             return JsonResponse({'error': 'Text is required'}, status=400)
         
-        # Simple text transformation based on mode
-        # For now, just return the text as-is since no actual AI is implemented
-        humanized_text = transform_text(text, mode)
+        # Get or create user based on session
+        user = get_or_create_user(request.session.session_key)
         
-        # Store in session for history (optional - frontend handles this)
-        if 'humanizer_history' not in request.session:
-            request.session['humanizer_history'] = []
+        # Use OpenAI to humanize the text
+        humanized_text = humanize(text, mode)
         
-        history_item = {
-            'original_text': text,
-            'humanized_text': humanized_text,
-            'mode': mode,
-            'timestamp': time.time()
-        }
+        # Calculate processing time
+        processing_time = time.time() - start_time
         
-        # Add to session history (keep last 10 items)
-        history = request.session.get('humanizer_history', [])
-        history.insert(0, history_item)
-        history = history[:10]  # Keep only last 10 items
-        request.session['humanizer_history'] = history
+        # Save to database if user exists
+        if user:
+            Request.objects.create(
+                user=user,
+                original_text=text,
+                humanized_text=humanized_text,
+                mode=mode,
+                processing_time=processing_time
+            )
         
         return JsonResponse({
             'original_text': text,
             'humanized_text': humanized_text,
             'mode': mode,
-            'timestamp': history_item['timestamp']
+            'processing_time': processing_time
         })
         
     except json.JSONDecodeError:
@@ -59,33 +77,29 @@ def humanize_text(request):
 @csrf_exempt
 @require_http_methods(["GET"])
 def get_history(request):
-    """API endpoint to get session history"""
+    """API endpoint to get session history from database"""
     try:
-        history = request.session.get('humanizer_history', [])
-        one_hour_ago = time.time() - 3600  # 1 hour ago
+        # Get user from session
+        user = get_or_create_user(request.session.session_key)
         
-        # Filter out items older than 1 hour
-        recent_history = [item for item in history if item.get('timestamp', 0) > one_hour_ago]
+        # Get history from database (last 3 requests)
+        history = []
+        if user:
+            recent_requests = Request.objects.filter(user=user).order_by('-created_at')[:3]
+            history = [
+                {
+                    'original_text': req.original_text,
+                    'humanized_text': req.humanized_text,
+                    'mode': req.mode,
+                    'timestamp': req.created_at.timestamp(),
+                    'created_at': req.created_at.isoformat()
+                }
+                for req in recent_requests
+            ]
         
         return JsonResponse({
-            'history': recent_history[:3]  # Return only first 3 items
+            'history': history
         })
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
-def transform_text(text, mode):
-    """Transform text based on the selected mode"""
-    # This is a simple placeholder transformation
-    # In a real application, you would integrate with an AI service
-    
-    transformations = {
-        'academic': lambda t: f"In this analysis, we observe that {t.lower()}",
-        'casual': lambda t: f"Hey! So {t.lower()}",
-        'emotional': lambda t: f"My heart feels that {t.lower()}",
-        'marketing': lambda t: f"Amazing! {t} - This will revolutionize your experience!",
-        'storytelling': lambda t: f"Once upon a time, {t.lower()}",
-        'simplify': lambda t: f"Simply put: {t.lower()}"
-    }
-    
-    return transformations.get(mode, lambda t: t)(text)

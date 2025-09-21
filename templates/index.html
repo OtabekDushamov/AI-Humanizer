@@ -103,12 +103,7 @@
             </div>
             
             <div id="history-container" class="hidden mt-6">
-                <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-sm font-medium" id="history-title">Recent History</h3>
-                    <button id="clear-history-btn" class="text-xs text-red-400 hover:text-red-300 flex items-center">
-                        <i data-feather="trash-2" class="w-3 h-3 mr-1"></i> <span id="clear-history-text">Clear All</span>
-                    </button>
-                </div>
+                <h3 class="text-sm font-medium mb-3" id="history-title">Recent History</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="history-grid">
                     <!-- History items will be added here dynamically -->
                 </div>
@@ -204,11 +199,6 @@
                 en: "Just now",
                 ru: "Только что",
                 uz: "Hozir"
-            },
-            clearAll: {
-                en: "Clear All",
-                ru: "Очистить Все",
-                uz: "Hammasini Tozalash"
             }
         };
         
@@ -226,7 +216,6 @@
             document.getElementById('generate-text').textContent = translations.generate[lang];
             document.getElementById('result-label').textContent = translations.result[lang];
             document.getElementById('history-title').textContent = translations.history[lang];
-            document.getElementById('clear-history-text').textContent = translations.clearAll[lang];
             document.getElementById('footer-text').textContent = translations.footer[lang];
             
             // Update select options
@@ -252,9 +241,6 @@
         document.getElementById('lang-en').addEventListener('click', () => switchLanguage('en'));
         document.getElementById('lang-ru').addEventListener('click', () => switchLanguage('ru'));
         document.getElementById('lang-uz').addEventListener('click', () => switchLanguage('uz'));
-        
-        // Clear all history button
-        document.getElementById('clear-history-btn').addEventListener('click', clearAllHistory);
         
         // Demo functionality
         const sampleTexts = {
@@ -320,7 +306,6 @@
                     } else {
                         clearInterval(typing);
                         resultText.classList.remove('typing-effect');
-                        saveToSessionHistory(inputText, result, mode);
                         updateHistoryDisplay();
                         historyContainer.classList.remove('hidden');
                     }
@@ -338,131 +323,69 @@
             }
         }
         
-        // Session-based history management
-        function saveToSessionHistory(original, transformed, mode) {
-            const historyItem = {
-                id: Date.now() + Math.random(), // Unique ID for each item
-                original: original,
-                transformed: transformed,
-                mode: mode,
-                timestamp: Date.now()
-            };
-            
-            // Get existing history from sessionStorage
-            let history = JSON.parse(sessionStorage.getItem('humanizer_history') || '[]');
-            
-            // Add new item to beginning
-            history.unshift(historyItem);
-            
-            // Keep only last 10 items
-            history = history.slice(0, 10);
-            
-            // Save back to sessionStorage
-            sessionStorage.setItem('humanizer_history', JSON.stringify(history));
-        }
-        
-        function getSessionHistory() {
-            const history = JSON.parse(sessionStorage.getItem('humanizer_history') || '[]');
-            const oneHourAgo = Date.now() - (60 * 60 * 1000); // 1 hour in milliseconds
-            
-            // Filter out items older than 1 hour
-            return history.filter(item => item.timestamp > oneHourAgo);
-        }
-        
-        function deleteHistoryItem(itemId) {
-            let history = JSON.parse(sessionStorage.getItem('humanizer_history') || '[]');
-            history = history.filter(item => item.id !== itemId);
-            sessionStorage.setItem('humanizer_history', JSON.stringify(history));
-            updateHistoryDisplay();
-        }
-        
-        function clearAllHistory() {
-            sessionStorage.removeItem('humanizer_history');
-            updateHistoryDisplay();
+        // Database-based history management
+        async function loadHistoryFromDatabase() {
+            try {
+                const response = await fetch('/api/history/');
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.history || [];
+                }
+            } catch (error) {
+                console.error('Error loading history from database:', error);
+            }
+            return [];
         }
         
         function updateHistoryDisplay() {
-            const history = getSessionHistory();
             const historyGrid = document.getElementById('history-grid');
             const historyContainer = document.getElementById('history-container');
             
             // Clear existing history items
             historyGrid.innerHTML = '';
             
-            if (history.length === 0) {
-                historyContainer.classList.add('hidden');
-                return;
-            }
+            // Load history from database
+            loadHistoryFromDatabase().then(history => {
+                if (history.length === 0) {
+                    historyContainer.classList.add('hidden');
+                    return;
+                }
+                
+                // Show only first 3 items
+                const displayHistory = history.slice(0, 3);
+                
+                displayHistory.forEach(item => {
+            const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item glass-card rounded-lg p-3 text-sm hover:bg-gray-800/50 relative group';
+                    
+                    const modeText = document.querySelector(`#mode-select option[value="${item.mode}"]`).getAttribute(`data-${currentLanguage}`);
+                    
+            historyItem.innerHTML = `
+                        <div class="text-xs text-indigo-400 mb-1">${modeText}</div>
+                        <div class="line-clamp-2 mb-1 cursor-pointer">${item.original_text.substring(0, 60)}${item.original_text.length > 60 ? '...' : ''}</div>
+                        <div class="text-xs text-gray-400">${translations.justNow[currentLanguage]}</div>
+            `;
             
-            // Show only first 3 items
-            const displayHistory = history.slice(0, 3);
-            
-            displayHistory.forEach(item => {
-                const historyItem = document.createElement('div');
-                historyItem.className = 'history-item glass-card rounded-lg p-3 text-sm hover:bg-gray-800/50 relative group';
-                
-                const modeText = document.querySelector(`#mode-select option[value="${item.mode}"]`).getAttribute(`data-${currentLanguage}`);
-                
-                historyItem.innerHTML = `
-                    <div class="text-xs text-indigo-400 mb-1">${modeText}</div>
-                    <div class="line-clamp-2 mb-1 cursor-pointer">${item.original.substring(0, 60)}${item.original.length > 60 ? '...' : ''}</div>
-                    <div class="text-xs text-gray-400">${translations.justNow[currentLanguage]}</div>
-                    <button class="absolute top-2 right-2 p-1 rounded-full bg-gray-800 hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200" onclick="deleteHistoryItem('${item.id}')">
-                        <i data-feather="x" class="w-3 h-3"></i>
-                    </button>
-                `;
-                
-                // Add click handler to fill input (only on the text area, not the delete button)
-                const textArea = historyItem.querySelector('.line-clamp-2');
-                textArea.addEventListener('click', () => {
-                    document.getElementById('input-text').value = item.original;
-                    document.getElementById('mode-select').value = item.mode;
-                    document.getElementById('result-text').textContent = item.transformed;
-                    document.getElementById('result-container').classList.remove('hidden');
-                });
-                
-                historyGrid.appendChild(historyItem);
+            // Add click handler to fill input
+                    const textArea = historyItem.querySelector('.line-clamp-2');
+                    textArea.addEventListener('click', () => {
+                        document.getElementById('input-text').value = item.original_text;
+                        document.getElementById('mode-select').value = item.mode;
+                        document.getElementById('result-text').textContent = item.humanized_text;
+                document.getElementById('result-container').classList.remove('hidden');
             });
             
-            // Refresh feather icons
-            feather.replace();
-            historyContainer.classList.remove('hidden');
+                    historyGrid.appendChild(historyItem);
+                });
+                
+                // Refresh feather icons
+                feather.replace();
+                historyContainer.classList.remove('hidden');
+            });
         }
         
         // Load history on page load
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Check if we already have sessionStorage history to avoid duplication
-            const existingHistory = JSON.parse(sessionStorage.getItem('humanizer_history') || '[]');
-            
-            // Only load from backend if we don't have any existing history
-            if (existingHistory.length === 0) {
-                try {
-                    const response = await fetch('/api/history/');
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.history && data.history.length > 0) {
-                            // Convert backend history to frontend format
-                            const backendHistory = data.history.map(item => ({
-                                id: `backend_${item.timestamp}_${Math.random()}`, // Unique ID for backend items
-                                original: item.original_text,
-                                transformed: item.humanized_text,
-                                mode: item.mode,
-                                timestamp: item.timestamp * 1000 // Convert to milliseconds
-                            }));
-                            
-                            // Sort by timestamp and keep only recent items
-                            const sortedHistory = backendHistory
-                                .sort((a, b) => b.timestamp - a.timestamp)
-                                .slice(0, 10);
-                            
-                            sessionStorage.setItem('humanizer_history', JSON.stringify(sortedHistory));
-                        }
-                    }
-                } catch (error) {
-                    console.log('Could not load backend history, using localStorage only');
-                }
-            }
-            
+        document.addEventListener('DOMContentLoaded', () => {
             updateHistoryDisplay();
         });
         
